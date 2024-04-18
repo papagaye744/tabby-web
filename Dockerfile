@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:12-alpine AS frontend-build
+FROM node:21-alpine AS frontend-build
 WORKDIR /app
 COPY frontend/package.json frontend/yarn.lock ./
 RUN yarn install --frozen-lockfile --network-timeout 1000000
@@ -10,7 +10,7 @@ COPY frontend/theme theme
 RUN yarn run build
 RUN yarn run build:server
 
-FROM node:12-alpine AS frontend
+FROM node:21-alpine AS frontend
 WORKDIR /app
 COPY --from=frontend-build /app/build build
 COPY --from=frontend-build /app/build-server build-server
@@ -20,7 +20,7 @@ CMD ["npm", "start"]
 
 # ----
 
-FROM python:3.7-alpine AS build-backend
+FROM python:3-alpine AS build-backend
 ARG EXTRA_DEPS
 
 RUN apk add build-base musl-dev libffi-dev openssl-dev mariadb-dev bash curl
@@ -31,7 +31,7 @@ WORKDIR /app
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH /root/.cargo/bin:$PATH
 
-RUN pip install -U setuptools cryptography==37.0.4 poetry==1.1.7
+RUN pip install -U setuptools cryptography poetry
 COPY backend/pyproject.toml backend/poetry.lock ./
 RUN poetry config virtualenvs.path /venv
 RUN poetry install --no-dev --no-ansi --no-interaction
@@ -41,17 +41,17 @@ COPY backend/manage.py backend/gunicorn.conf.py ./
 COPY backend/tabby tabby
 COPY --from=frontend /app/build /frontend
 
-ARG BUNDLED_TABBY=1.0.187-nightly.1
+ARG BUNDLED_TABBY=1.0.207-nightly.1
 
 RUN FRONTEND_BUILD_DIR=/frontend /venv/*/bin/python ./manage.py collectstatic --noinput
 RUN APP_DIST_STORAGE=file:///app-dist /venv/*/bin/python ./manage.py add_version ${BUNDLED_TABBY}
 
 # ----
 
-FROM python:3.7-alpine AS backend
+FROM python:3-alpine AS backend
 
 ENV APP_DIST_STORAGE file:///app-dist
-ENV DOCKERIZE_VERSION v0.6.1
+ENV DOCKERIZE_VERSION v0.7.0
 ENV DOCKERIZE_ARCH amd64
 ARG TARGETPLATFORM
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; \
