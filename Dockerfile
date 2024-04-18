@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM node:21-alpine AS frontend-build
 WORKDIR /app
-COPY frontend/package.json frontend/yarn.lock ./
+COPY frontend/package.json ./
 RUN yarn install --frozen-lockfile --network-timeout 1000000
 COPY frontend/webpack* frontend/tsconfig.json ./
 COPY frontend/assets assets
@@ -32,7 +32,7 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH /root/.cargo/bin:$PATH
 
 RUN pip install -U setuptools cryptography poetry
-COPY backend/pyproject.toml backend/poetry.lock ./
+COPY backend/pyproject.toml ./
 RUN poetry config virtualenvs.path /venv
 RUN poetry install --only main --no-ansi --no-interaction
 RUN poetry run pip install -U setuptools psycopg2-binary $EXTRA_DEPS
